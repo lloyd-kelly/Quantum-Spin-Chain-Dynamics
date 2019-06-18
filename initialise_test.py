@@ -51,7 +51,6 @@ def test_length_3_chain():
     assert Spin_Operator_List[2][0].all() == Sx3_actual.all()
     assert len(Spin_Operator_List) == chain_length
     assert Spin_Operator_List[0][1].size == Sy1_actual.size
-    #print(Spin_Operator_List[0][1].shape())
 
 """
 print(initial_state)
