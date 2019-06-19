@@ -36,8 +36,8 @@ def chain_operator_constructor(chain_length, chain_position, qubit_operator):
     Takes an operator acting on a single qubit, in a given position of the chain. Outputs the operator on the entire 
     chain.
     """
-    operator_1 = tensor_product_initialiser(chain_position, qubit_operator, qubit_identity, False)
-    operator = tensor_product_initialiser(chain_length - chain_position, operator_1, qubit_identity, True)
+    operator_left = tensor_product_initialiser(chain_position, qubit_operator, qubit_identity, False)
+    operator = tensor_product_initialiser(chain_length - chain_position + 1, operator_left, qubit_identity, True)
     return operator
 
 
@@ -46,11 +46,11 @@ def Spin_List_Creator(chain_length):
     Creates list of size chain_length of the Spin operators for each site, where S = [Sx, Sy, Sz]. Indexed from 0.
     """
     Spin_List = []
-    for i in range(chain_length):
-        Qubit_Spin_List = np.array([chain_operator_constructor(chain_length, i, Sx), 
-                                      chain_operator_constructor(chain_length, i, Sy),
-                                      chain_operator_constructor(chain_length, i, Sz)])
-        Spin_List.append(Qubit_Spin_List)
+    for qubit_chain_position in range(chain_length):
+        Qubit_Spin_Array = np.array([chain_operator_constructor(chain_length, qubit_chain_position + 1, Sx), 
+                                      chain_operator_constructor(chain_length, qubit_chain_position + 1, Sy),
+                                      chain_operator_constructor(chain_length, qubit_chain_position + 1, Sz)])
+        Spin_List.append(Qubit_Spin_Array)
     return Spin_List
 
 """
@@ -58,4 +58,6 @@ Qubit_1_Spin = np.array([chain_operator_constructor(1, Sx), chain_operator_const
                          chain_operator_constructor(1, Sz)])
 """
 
-#print(Spin_Operator_List[0])
+Spin_Operator_List = Spin_List_Creator(3)
+print(Spin_Operator_List[0])
+print(Spin_Operator_List[1])
