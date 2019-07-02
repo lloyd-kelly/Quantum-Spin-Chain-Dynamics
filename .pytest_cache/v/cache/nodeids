@@ -1,4 +1,6 @@
 [
+  "Hamiltonian_test.py::test_Hamiltonian_length_chain_1",
+  "Hamiltonian_test.py::test_Hamiltonian_length_chain_2",
   "initialise_test.py::test_length_1_chain",
   "initialise_test.py::test_length_2_chain",
   "initialise_test.py::test_length_3_chain"

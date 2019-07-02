@@ -57,7 +57,3 @@ def Spin_List_Creator(chain_length):
 Qubit_1_Spin = np.array([chain_operator_constructor(1, Sx), chain_operator_constructor(1, Sy),
                          chain_operator_constructor(1, Sz)])
 """
-
-Spin_Operator_List = Spin_List_Creator(3)
-print(Spin_Operator_List[0])
-print(Spin_Operator_List[1])

@@ -6,7 +6,6 @@ def test_length_1_chain():
     initial_state = create_initial_final_states(chain_length, True)
     final_state = create_initial_final_states(chain_length, False)
     Spin_Operator_List = Spin_List_Creator(chain_length)
-    print(Spin_Operator_List)
 
     assert initial_state.all() == final_state.all()
     assert Spin_Operator_List[0][0].all() == Sx.all()
