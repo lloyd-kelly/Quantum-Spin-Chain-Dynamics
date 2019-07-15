@@ -9,7 +9,7 @@ initial_state = create_initial_final_states(total_chain_length, True)
 final_state = create_initial_final_states(total_chain_length, False)
 final_state = final_state.transpose()
 Spin_Operator_List = Spin_List_Creator(total_chain_length)
-couplings = [1, 1, 1]
+couplings_initialise = [0, 0]
 
 
 def Calculate_Fidelity(couplings, time, XY_HAM = False):
@@ -31,12 +31,14 @@ def plot_fidelity_overtime(couplings, total_time):
     x = np.arange(0, total_time, 0.1)
     y = np.zeros(x.size)
     for index, value in np.ndenumerate(x):
-        y[index] = Calculate_Fidelity(couplings, value)
+        y[index] = Calculate_Fidelity(couplings, value, XY_HAM = False)
     plt.ylabel("Probability") 
     plt.xlabel("Time") 
     plt.title("Probability of perfect fidelity") 
     plt.plot(x,y) 
     plt.show()
+
+#plot_fidelity_overtime([1, math.sqrt(2), 1], 20)
 
 def find_optimal_fidelity(couplings, total_time, XY_HAM = False):
     """
@@ -47,3 +49,5 @@ def find_optimal_fidelity(couplings, total_time, XY_HAM = False):
     for index, value in np.ndenumerate(times):
         fidelities[index] = Calculate_Fidelity(couplings, value, XY_HAM)
     return np.amax(fidelities)
+
+

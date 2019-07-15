@@ -11,6 +11,8 @@ up = np.array([[1],
 down = np.array([[0],
                  [1]])
 
+qubit_identity = np.identity(2)
+
 def tensor_product_initialiser(number_particles, state, iterated_state, first):
     """
     Creates a tensor product over a certain number of particles, with an initial state, and an iterated 
@@ -28,8 +30,6 @@ def tensor_product_initialiser(number_particles, state, iterated_state, first):
 
 def create_initial_final_states(chain_length, initial):
     return tensor_product_initialiser(chain_length, up, down, initial)
-
-qubit_identity = np.identity(2)
 
 def chain_operator_constructor(chain_length, chain_position, qubit_operator):
     """
@@ -52,8 +52,3 @@ def Spin_List_Creator(chain_length):
                                       chain_operator_constructor(chain_length, qubit_chain_position + 1, Sz)])
         Spin_List.append(Qubit_Spin_Array)
     return Spin_List
-
-"""
-Qubit_1_Spin = np.array([chain_operator_constructor(1, Sx), chain_operator_constructor(1, Sy),
-                         chain_operator_constructor(1, Sz)])
-"""
