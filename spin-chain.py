@@ -2,6 +2,8 @@ import numpy as np
 from scipy.linalg import expm, sinm, cosm
 from matplotlib import pyplot as plt
 import math
+from scipy.optimize import minimize
+from psopy import minimize as minimize_pso
 
 #pauli matrices
 Sx = np.array([[0, 1], [1, 0]])
@@ -141,7 +143,7 @@ def plot_fidelity_overtime(chain_size, couplings, total_time):
 
 #plot_fidelity_overtime(4, [1, math.sqrt(2), 1], 20)
 
-def find_optimal_fidelity(chain_length, Spin_Operator_List, initial_state, final_state, couplings, total_time, XY_HAM = False):
+def find_optimal_fidelity(chain_length, couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM = False):
     """
     Finds the MAXIMUM fidelity achieved by the evolution when evolved over total_time
     """
@@ -164,7 +166,7 @@ def plot_changing_fidelity(chain_size, evolution_time):
     fidelities = np.zeros(j2s.size)
     for index, j2_value in np.ndenumerate(j2s):
         coupling_trial = [1, j2_value, 1]
-        fidelities[index] = find_optimal_fidelity(chain_size, Spin_Operator_List, initial_state, final_state, coupling_trial, evolution_time, XY_HAM = False)
+        fidelities[index] = find_optimal_fidelity(chain_size, coupling_trial, Spin_Operator_List, initial_state, final_state, evolution_time, XY_HAM = False)
     best_fid = np.amax(fidelities)
     first_j2_optimal = j2s[np.where(fidelities == best_fid)[0][0]]
     print(best_fid)
@@ -180,35 +182,66 @@ def plot_changing_fidelity(chain_size, evolution_time):
     
 #plot_changing_fidelity(4, 10)
 
-def cost_function(couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM = False):
+def cost_function(couplings, chain_length, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM = False):
     """
     #Calculate the cost function in terms of fidelity for a given coupling over a given time, using the maximum achieved fidelity
     """
-    return (1 - find_optimal_fidelity(couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM))
+    return (1 - find_optimal_fidelity(chain_length, couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM))
 
-def return_fidelities(chain_size, evolution_time):
+def symmetric_chain_cost_function(couplings_values, chain_size, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM = False):
+    number_couplings = chain_size - 1
+    new_couplings = np.zeros(number_couplings)
+    if number_couplings % 2 == 0:
+        number_variable_couplings = int(number_couplings / 2) #half the size
+        indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
+        np.put(new_couplings, indicies, couplings_values)
+    if number_couplings % 2 == 1:
+        number_variable_couplings = int((number_couplings + 1) / 2)
+        indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
+        np.put(new_couplings, indicies, couplings_values)
+    return (1 - find_optimal_fidelity(chain_size, new_couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM))
+
+
+
+
+
+def return_fidelities(chain_size, evolution_time, couplings_0):
     """
     Final fidelity calculator. Should build the chain, calculate the fidelity over the chain and find the
     optimisation.
+    Works only for chains of size > 3
     """
     initial_state = create_initial_final_states(chain_size, True)
     final_state = create_initial_final_states(chain_size, False)
     final_state = final_state.transpose()
     Spin_Operator_List = Spin_List_Creator(chain_size)
     number_couplings = chain_size - 1
-    couplings = np.zeros(number_couplings)
+    """
+    couplings_0 = np.zeros(number_couplings)
     if number_couplings % 2 == 0:
         number_variable_couplings = int(number_couplings / 2)
         coupling_values = np.full(number_variable_couplings, 1) #half the size
-        indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings - 1)]
-        np.put(couplings, indicies, coupling_values)
+        indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
+        np.put(couplings_0, indicies, coupling_values)
     if number_couplings % 2 == 1:
         number_variable_couplings = int((number_couplings + 1) / 2)
         coupling_values = np.full(number_variable_couplings, 1)
         indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
-        np.put(couplings, indicies, coupling_values)
-    prob = Calculate_Fidelity(chain_size, Spin_Operator_List, initial_state, final_state, couplings, evolution_time)
-    
-    print(couplings)
+        np.put(couplings_0, indicies, coupling_values)
+    """
+    cons = ({'type' : 'ineq', 'fun' : lambda x: x[0]},
+            {'type' : 'ineq', 'fun' : lambda x: x[1]})
+    res = minimize_pso(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state, evolution_time), constraints= cons)
+    print(res.x)
+        
+    #result = minimize(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state, evolution_time), method='nelder-mead', options={'xtol': 1e-8, 'disp': True})
+    #print(result.x)
 
-return_fidelities(8, 50)
+couplings_0 = np.random.uniform(1, 2, (2, 2))
+return_fidelities(4, 5, couplings_0)
+"""
+x0 = np.array([[2,4], [1,4.5]])
+
+print(x0)
+return_fidelities(4, 1, x0)
+"""
