@@ -4,6 +4,10 @@ from matplotlib import pyplot as plt
 import math
 from scipy.optimize import minimize
 from psopy import minimize as minimize_pso
+from psopy import init_feasible
+import argparse
+import warnings
+warnings.filterwarnings('ignore')
 
 #pauli matrices
 Sx = np.array([[0, 1], [1, 0]])
@@ -90,7 +94,8 @@ def dot_product_spin_operators_XY(chain_length, Spin_Operator_List, qubit_positi
 
 def Heisenberg_Hamiltonian_Constructor(chain_length, Spin_Operator_List, couplings, XY_HAM = False):
     """
-    Create Heisenberg Hamiltonian with specific couplings and chain length
+    Create Heisenberg Hamiltonian with specific couplings and chain length. If XY_HAM is True, will use the XY
+    Hamiltonian instead of the Heisenberg.
     """
     #Spin_Operator_List = Spin_List_Creator(chain_length)
     Heisenberg = np.zeros((2**chain_length, 2**chain_length))
@@ -150,7 +155,7 @@ def find_optimal_fidelity(chain_length, couplings, Spin_Operator_List, initial_s
     times = np.arange(0, total_time, 0.1)
     fidelities = np.zeros(times.size)
     for index, value in np.ndenumerate(times):
-        fidelities[index] = Calculate_Fidelity(chain_length, Spin_Operator_List, initial_state, final_state, couplings, value, XY_HAM)
+        fidelities[index] = float(Calculate_Fidelity(chain_length, Spin_Operator_List, initial_state, final_state, couplings, value, XY_HAM))
     return np.amax(fidelities)
 
 
@@ -201,11 +206,11 @@ def symmetric_chain_cost_function(couplings_values, chain_size, Spin_Operator_Li
         np.put(new_couplings, indicies, couplings_values)
     return (1 - find_optimal_fidelity(chain_size, new_couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM))
 
+cons = ({'type' : 'ineq', 'fun' : lambda x: x[0]},
+        {'type' : 'ineq', 'fun' : lambda x: x[1]})
+couplings_0 = init_feasible(cons, low=0., high=2., shape=(50, 2))
 
-
-
-
-def return_fidelities(chain_size, evolution_time, couplings_0):
+def return_fidelities(chain_size, evolution_time, couplings_0, consts = cons):
     """
     Final fidelity calculator. Should build the chain, calculate the fidelity over the chain and find the
     optimisation.
@@ -229,19 +234,26 @@ def return_fidelities(chain_size, evolution_time, couplings_0):
         indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
         np.put(couplings_0, indicies, coupling_values)
     """
-    cons = ({'type' : 'ineq', 'fun' : lambda x: x[0]},
-            {'type' : 'ineq', 'fun' : lambda x: x[1]})
-    res = minimize_pso(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state, evolution_time), constraints= cons)
+    res = minimize_pso(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state, evolution_time), constraints= consts, options={'stable_iter' : 20, 'max_velocity' : 1, 'verbose' : True})
     print(res.x)
+    print(symmetric_chain_cost_function(res.x, chain_size, Spin_Operator_List, initial_state, final_state, evolution_time, XY_HAM = False))
         
     #result = minimize(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state, evolution_time), method='nelder-mead', options={'xtol': 1e-8, 'disp': True})
     #print(result.x)
 
-couplings_0 = np.random.uniform(1, 2, (2, 2))
-return_fidelities(4, 5, couplings_0)
-"""
-x0 = np.array([[2,4], [1,4.5]])
+#couplings_0 = np.random.uniform(1, 2, (2, 2))
+#return_fidelities(4, 1, couplings_0, cons)
 
-print(x0)
-return_fidelities(4, 1, x0)
-"""
+
+def Main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("chain_size", help = "The number of quantum states in your chain", type = int)
+    #number_couplings = args.chain_size - 1
+    parser.add_argument("evolution_time", help = "The maximum time you evolve the state to find optimal fidelity", type=float)
+
+    args = parser.parse_args()
+
+    return return_fidelities(args.chain_size, args.evolution_time, couplings_0)
+
+if __name__ == '__main__':
+    Main()
