@@ -193,9 +193,10 @@ def cost_function(couplings, chain_length, Spin_Operator_List, initial_state, fi
     """
     return (1 - find_optimal_fidelity(chain_length, couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM))
 
-def symmetric_chain_cost_function(couplings_values, chain_size, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM = False):
+def symmetric_chain_cost_function(couplings_values, chain_size, Spin_Operator_List, initial_state, final_state, XY_HAM = False):
     number_couplings = chain_size - 1
     new_couplings = np.zeros(number_couplings)
+    total_time = (1 * chain_size) / np.average(couplings_values) 
     if number_couplings % 2 == 0:
         number_variable_couplings = int(number_couplings / 2) #half the size
         indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
@@ -206,11 +207,8 @@ def symmetric_chain_cost_function(couplings_values, chain_size, Spin_Operator_Li
         np.put(new_couplings, indicies, couplings_values)
     return (1 - find_optimal_fidelity(chain_size, new_couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM))
 
-cons = ({'type' : 'ineq', 'fun' : lambda x: x[0]},
-        {'type' : 'ineq', 'fun' : lambda x: x[1]})
-couplings_0 = init_feasible(cons, low=0., high=2., shape=(50, 2))
 
-def return_fidelities(chain_size, evolution_time, couplings_0, consts = cons):
+def return_fidelities(chain_size, couplings_0, consts):
     """
     Final fidelity calculator. Should build the chain, calculate the fidelity over the chain and find the
     optimisation.
@@ -221,22 +219,10 @@ def return_fidelities(chain_size, evolution_time, couplings_0, consts = cons):
     final_state = final_state.transpose()
     Spin_Operator_List = Spin_List_Creator(chain_size)
     number_couplings = chain_size - 1
-    """
-    couplings_0 = np.zeros(number_couplings)
-    if number_couplings % 2 == 0:
-        number_variable_couplings = int(number_couplings / 2)
-        coupling_values = np.full(number_variable_couplings, 1) #half the size
-        indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
-        np.put(couplings_0, indicies, coupling_values)
-    if number_couplings % 2 == 1:
-        number_variable_couplings = int((number_couplings + 1) / 2)
-        coupling_values = np.full(number_variable_couplings, 1)
-        indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
-        np.put(couplings_0, indicies, coupling_values)
-    """
-    res = minimize_pso(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state, evolution_time), constraints= consts, options={'stable_iter' : 20, 'max_velocity' : 1, 'verbose' : True})
-    print(res.x)
-    print(symmetric_chain_cost_function(res.x, chain_size, Spin_Operator_List, initial_state, final_state, evolution_time, XY_HAM = False))
+
+    res = minimize_pso(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state), constraints= consts, options={'stable_iter' : 20, 'max_velocity' : 1, 'verbose' : True})
+    print(f"Best final fidelity: {1 - symmetric_chain_cost_function(res.x, chain_size, Spin_Operator_List, initial_state, final_state, XY_HAM = False)}")
+    print(f"Final Couplings: {res.x}")
         
     #result = minimize(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state, evolution_time), method='nelder-mead', options={'xtol': 1e-8, 'disp': True})
     #print(result.x)
@@ -244,16 +230,24 @@ def return_fidelities(chain_size, evolution_time, couplings_0, consts = cons):
 #couplings_0 = np.random.uniform(1, 2, (2, 2))
 #return_fidelities(4, 1, couplings_0, cons)
 
-
 def Main():
     parser = argparse.ArgumentParser()
     parser.add_argument("chain_size", help = "The number of quantum states in your chain", type = int)
-    #number_couplings = args.chain_size - 1
-    parser.add_argument("evolution_time", help = "The maximum time you evolve the state to find optimal fidelity", type=float)
-
     args = parser.parse_args()
-
-    return return_fidelities(args.chain_size, args.evolution_time, couplings_0)
+    number_couplings = args.chain_size - 1
+    cons = []
+    if number_couplings % 2 == 0:
+        number_variable_couplings = int(number_couplings / 2)
+    if number_couplings % 2 == 1:
+        number_variable_couplings = int((number_couplings + 1) / 2)
+    for i in range(number_variable_couplings):
+            cons.append({'type' : 'ineq', 'fun' : lambda x: x[i]})
+    """       
+    cons = ({'type' : 'ineq', 'fun' : lambda x: x[0]},
+            {'type' : 'ineq', 'fun' : lambda x: x[1]})
+    """
+    initial_couplings = init_feasible(cons, low=0., high=5., shape=(50, number_variable_couplings))
+    return return_fidelities(args.chain_size, initial_couplings, cons)
 
 if __name__ == '__main__':
     Main()
