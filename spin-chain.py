@@ -145,8 +145,10 @@ def plot_fidelity_overtime(chain_size, couplings, total_time):
     plt.title("Probability of perfect fidelity") 
     plt.plot(x,y) 
     plt.show()
+    plt.hold
 
-#plot_fidelity_overtime(4, [1, math.sqrt(2), 1], 20)
+#plot_fidelity_overtime(4, [0.9813, 1.9624, 0.9813], 10)
+plot_fidelity_overtime(4, [1,1,1], 10)
 
 def find_optimal_fidelity(chain_length, couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM = False):
     """
@@ -196,7 +198,6 @@ def cost_function(couplings, chain_length, Spin_Operator_List, initial_state, fi
 def symmetric_chain_cost_function(couplings_values, chain_size, Spin_Operator_List, initial_state, final_state, XY_HAM = False):
     number_couplings = chain_size - 1
     new_couplings = np.zeros(number_couplings)
-    total_time = (1 * chain_size) / np.average(couplings_values) 
     if number_couplings % 2 == 0:
         number_variable_couplings = int(number_couplings / 2) #half the size
         indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
@@ -205,6 +206,7 @@ def symmetric_chain_cost_function(couplings_values, chain_size, Spin_Operator_Li
         number_variable_couplings = int((number_couplings + 1) / 2)
         indicies = [i for i in range(number_variable_couplings)] + [number_couplings - 1 - i for i in range(number_variable_couplings)]
         np.put(new_couplings, indicies, couplings_values)
+    total_time = (10 * chain_size) / np.average(new_couplings)
     return (1 - find_optimal_fidelity(chain_size, new_couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM))
 
 
@@ -218,7 +220,6 @@ def return_fidelities(chain_size, couplings_0, consts):
     final_state = create_initial_final_states(chain_size, False)
     final_state = final_state.transpose()
     Spin_Operator_List = Spin_List_Creator(chain_size)
-    number_couplings = chain_size - 1
 
     res = minimize_pso(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state), constraints= consts, options={'stable_iter' : 20, 'max_velocity' : 1, 'verbose' : True})
     print(f"Best final fidelity: {1 - symmetric_chain_cost_function(res.x, chain_size, Spin_Operator_List, initial_state, final_state, XY_HAM = False)}")
@@ -229,12 +230,14 @@ def return_fidelities(chain_size, couplings_0, consts):
 
 #couplings_0 = np.random.uniform(1, 2, (2, 2))
 #return_fidelities(4, 1, couplings_0, cons)
-
+"""
 def Main():
     parser = argparse.ArgumentParser()
     parser.add_argument("chain_size", help = "The number of quantum states in your chain", type = int)
+    parser.add_argument("particles", help = "The number of particles created in swarm", type = int)
     args = parser.parse_args()
     number_couplings = args.chain_size - 1
+    
     cons = []
     if number_couplings % 2 == 0:
         number_variable_couplings = int(number_couplings / 2)
@@ -242,12 +245,16 @@ def Main():
         number_variable_couplings = int((number_couplings + 1) / 2)
     for i in range(number_variable_couplings):
             cons.append({'type' : 'ineq', 'fun' : lambda x: x[i]})
-    """       
-    cons = ({'type' : 'ineq', 'fun' : lambda x: x[0]},
-            {'type' : 'ineq', 'fun' : lambda x: x[1]})
-    """
-    initial_couplings = init_feasible(cons, low=0., high=5., shape=(50, number_variable_couplings))
+    cons = tuple(cons)
+    print(cons)
+     
+     #cons = ({'type' : 'ineq', 'fun' : lambda x: x[0]},
+     #        {'type' : 'ineq', 'fun' : lambda x: x[1]})
+
+    
+    initial_couplings = init_feasible(cons, low=1., high=2., shape=(args.particles, number_variable_couplings))
     return return_fidelities(args.chain_size, initial_couplings, cons)
 
 if __name__ == '__main__':
     Main()
+"""
