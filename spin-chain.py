@@ -140,15 +140,15 @@ def plot_fidelity_overtime(chain_size, couplings, total_time):
     y = np.zeros(x.size)
     for index, value in np.ndenumerate(x):
         y[index] = Calculate_Fidelity(chain_size, Spin_Operator_List, initial_state, final_state, couplings, value, XY_HAM = False)
-    plt.ylabel("Probability") 
-    plt.xlabel("Time") 
-    plt.title("Probability of perfect fidelity") 
+    plt.ylabel("Fidelity") 
+    plt.xlabel("Time · J") 
+    plt.title("Changing fidelity of state transfer for different times") 
     plt.plot(x,y) 
     plt.show()
     plt.hold
 
 #plot_fidelity_overtime(4, [0.9813, 1.9624, 0.9813], 10)
-plot_fidelity_overtime(4, [1,1,1], 10)
+plot_fidelity_overtime(4, [1,1,1], 20)
 
 def find_optimal_fidelity(chain_length, couplings, Spin_Operator_List, initial_state, final_state, total_time, XY_HAM = False):
     """

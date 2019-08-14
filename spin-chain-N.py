@@ -32,7 +32,7 @@ def Hamiltonian_Constructor(chain_size, couplings):
     N = chain_size
     for coupling in couplings:
         couplings_sum += coupling
-    H = np.zeros((N, N)) 
+    H = np.zeros((N, N))
     H[0,0] = couplings_sum - 2 * couplings[0]
     H[N-1,N-1] = couplings_sum - 2 * couplings[N-2]
     for i in range(1, N-1):
@@ -40,6 +40,7 @@ def Hamiltonian_Constructor(chain_size, couplings):
     for i in range(N-1):
         H[i,i+1] = 2 * couplings[i]
         H[i+1,i] = 2 * couplings[i]
+    H = np.divide(H, np.average(couplings))
     return H
 
 def time_evolution2(hamiltonian_matrix, time):
@@ -62,7 +63,7 @@ def Calculate_Fidelity2(chain_size, initial_state, final_state, couplings, time)
     probability = fidelity_value * np.conj(fidelity_value)
     return probability
 
-def plot_fidelity_overtime2(chain_size, initial_state, final_state, couplings, total_time):
+def plot_fidelity_overtime2(chain_size, initial_state, final_state, couplings, total_time, colour, line_title):
     """
     Plots the fidelity over a given time with specified coupling
     """
@@ -70,11 +71,9 @@ def plot_fidelity_overtime2(chain_size, initial_state, final_state, couplings, t
     y = np.zeros(x.size)
     for index, value in np.ndenumerate(x):
         y[index] = Calculate_Fidelity2(chain_length, initial, final, couplings, value)
-    plt.ylabel("Probability") 
-    plt.xlabel("Time") 
-    plt.title("Probability of perfect fidelity") 
-    plt.plot(x,y) 
-    plt.show()
+    plt.ylabel("Fidelity") 
+    plt.xlabel("Time • J") 
+    plt.plot(x,y, colour, label = line_title)
 
 def find_optimal_fidelity2(chain_size, initial_state, final_state, couplings, total_time):
     """
@@ -110,26 +109,52 @@ def return_fidelities2(chain_size, initial_state, final_state, couplings_initial
     # optimisation.
     # Works only for chains of size > 3
     """
-    res = minimize_pso(symmetric_chain_cost_function2, couplings_initial, args = (chain_size, initial_state, final_state), constraints= None, options={'stable_iter' : 20, 'max_velocity' : 1, 'verbose' : True})
+    res = minimize_pso(symmetric_chain_cost_function2, couplings_initial, args = (chain_size, initial_state, final_state), constraints= None, options={'stable_iter' : 5, 'max_velocity' : 1, 'verbose' : True})
     print(f"Best final fidelity: {1 - symmetric_chain_cost_function2(res.x, chain_size, initial_state, final_state)}")
     print(f"Final Couplings: {res.x}")
     return res
     #result = minimize(symmetric_chain_cost_function, couplings_0, args = (chain_size, Spin_Operator_List, initial_state, final_state, evolution_time), method='nelder-mead', options={'xtol': 1e-8, 'disp': True})
     #print(result.x)
 
-chain_length = 10
+
+def plot_couplings(chain_size, couplings):
+    x = range(1, chain_size)
+    y = couplings
+    chain_size_str = str(chain_size)
+    plt.ylabel("Coupling value") 
+    plt.xlabel("Site Position") 
+    plt.title("Optimised couplings between sites for an " + chain_size_str + "-site chain") 
+    plt.plot(x,y)
+    plt.savefig('Couplings for ' + chain_size_str + '-site chain.png')
+    plt.close()
+
+chain_length = 4
+chain_lenth_str = str(chain_length)
+number_couplings = chain_length - 1
 initial = create_basis_state(chain_length, 1)
 final = create_basis_state(chain_length, chain_length).transpose()
-number_variable_couplings = int((chain_length - 1) / 2)
+basic_couplings = [1] * (chain_length - 1)
+if number_couplings % 2 == 0:
+    number_variable_couplings = int(number_couplings / 2)
+if number_couplings % 2 == 1:
+    number_variable_couplings = int((number_couplings + 1) / 2)
 cons = []
 for i in range(number_variable_couplings):
     cons.append({'type' : 'ineq', 'fun' : lambda x: x[i]})
 cons = tuple(cons)
-initial_couplings = init_feasible(cons, low=0., high=5., shape=(20, number_variable_couplings))
+initial_couplings = init_feasible(cons, low=1., high=5., shape=(100, number_variable_couplings))
 result = return_fidelities2(chain_length, initial, final, initial_couplings, cons)
 final_couplings = turn_symmetric_couplings(result.x, chain_length, initial, final)
-
-plot_fidelity_overtime2(chain_length, initial, final, final_couplings, 10)
+normaliser = final_couplings[0]
+final_couplings = np.divide(final_couplings, final_couplings[0])
+print(final_couplings)
+plot_fidelity_overtime2(chain_length, initial, final, basic_couplings, (10 * chain_length) / np.average(initial_couplings), 'b', 'Unoptimised Couplings')
+plot_fidelity_overtime2(chain_length, initial, final, final_couplings, (10 * chain_length) / np.average(final_couplings), 'r', 'Optimised Couplings')
+plt.legend(loc='best')
+plt.title('Fidelity over time for ' + chain_lenth_str + '-site spin chain')
+plt.savefig('Fidelity over time for ' + chain_lenth_str + '-site spin chain.png')
+plt.close()
+plot_couplings(chain_length, final_couplings)
 
 # """
 
